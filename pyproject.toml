@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loupe"
+version = "1.0.0"
+description = "Loupe: a System-1 decision engine, one-pass typed decisions with calibrated probabilities"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi", "uvicorn", "pydantic>=2", "numpy",
+  "torch>=2.10,<2.11", "transformers==5.17.0", "peft==0.21.0", "safetensors", "huggingface_hub>=1.5,<2.0",
+  "flash-linear-attention==0.5.2",
+]
+
+[project.optional-dependencies]
+vllm = ["vllm>=0.30"]
+mlx = ["mlx-lm"]
+test = ["pytest", "httpx"]
+
+[tool.setuptools]
+packages = ["loupe"]
+
+[tool.pytest.ini_options]
+markers = ["slow: needs a GPU or a model download"]
