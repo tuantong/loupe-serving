@@ -54,6 +54,8 @@ def build_engine(backend_name: str, env: dict[str, str] | None = None) -> Engine
     settings = {}
     if "LOUPE_CALIBRATION" in env:
         settings["calibration"] = Calibration.load(env["LOUPE_CALIBRATION"])
+        if settings["calibration"].model_name:
+            settings["model_name"] = settings["calibration"].model_name
     if "LOUPE_CONTEXT_BUDGET" in env:
         settings["context_budget"] = int(env["LOUPE_CONTEXT_BUDGET"])
     if "LOUPE_MODEL_NAME" in env:

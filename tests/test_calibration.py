@@ -90,3 +90,13 @@ def test_probability_questions_use_their_own_temperature():
     assert cal.temperature("noul", 900) == 2.0
     assert cal.temperature("escalated", probability=True) == 4.0
     assert Calibration({"noul": 1.5}).temperature("noul", 100, probability=True) == 1.5
+
+
+def test_a_calibration_file_can_name_the_model_it_defines(tmp_path):
+    path = tmp_path / "calibration.json"
+    Calibration({"noul": 0.5, "noul_offset": -1.0, "model_name": "loupe-1.1"}).save(path)
+    loaded = Calibration.load(path)
+    assert loaded.model_name == "loupe-1.1" and loaded.temperature("noul") == 0.5 and loaded.offset("noul") == -1.0
+    plain = tmp_path / "plain.json"
+    Calibration({"noul": 0.5}).save(plain)
+    assert Calibration.load(plain).model_name is None and "model_name" not in json.loads(plain.read_text())

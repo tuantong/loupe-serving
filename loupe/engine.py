@@ -86,7 +86,10 @@ class Engine:
         extra, thinking, escalations = 0, 0, 0
         for plan, row, prompt_tokens in zip(plans, logits, tokens):
             temperature = self.calibration.temperature(plan.question.type, prompt_tokens, probability=asks_for_probabilities(plan.question))
-            probs = softmax(row, temperature)
+            scaled = [x / temperature for x in row]
+            if plan.question.type == "noul":
+                scaled[0] += self.calibration.offset("noul", prompt_tokens)
+            probs = softmax(scaled)
             probs, policy_used, spent, thought = self._refine(
                 plan, state_text, order, probs, request.policy, escalations < self.max_escalations, gate=softmax(row, 1.0), prompt_tokens=prompt_tokens
             )

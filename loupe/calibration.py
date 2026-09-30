@@ -11,6 +11,7 @@ TEMPERATURE_KEYS = ("noul", "choice", "score", "escalated")
 # to the plain ones (1.0 for "scratch"), so existing calibration files keep
 # their meaning.
 OPTIONAL_KEYS = ("noul_long", "choice_long", "score_long", "escalated_capped", "probability", "scratch")
+OFFSET_KEYS = ("noul_offset", "noul_long_offset")
 DEFAULT_LONG_TOKENS = 800
 
 
@@ -25,6 +26,8 @@ class Calibration:
     def __init__(self, temperatures: dict[str, float] | None = None, long_tokens: int = DEFAULT_LONG_TOKENS):
         given = dict(temperatures or {})
         long_tokens = int(given.pop("long_tokens", long_tokens))
+        self.model_name = given.pop("model_name", None)
+        self.offsets = {key: float(given.pop(key)) for key in OFFSET_KEYS if key in given}
         unknown = set(given) - set(TEMPERATURE_KEYS) - set(OPTIONAL_KEYS)
         if unknown:
             raise ValueError(f"unknown temperature keys: {sorted(unknown)}")
@@ -43,12 +46,21 @@ class Calibration:
             return self.temperatures.get(f"{qtype}_long", self.temperatures[qtype])
         return self.temperatures[qtype]
 
+    def offset(self, qtype: str, prompt_tokens: int | None = None) -> float:
+        """A log-odds shift toward yes on Noul answers; the long key falls back to the plain one."""
+        if qtype != "noul":
+            return 0.0
+        if prompt_tokens is not None and prompt_tokens >= self.long_tokens and "noul_long_offset" in self.offsets:
+            return self.offsets["noul_long_offset"]
+        return self.offsets.get("noul_offset", 0.0)
+
     @classmethod
     def load(cls, path) -> "Calibration":
         return cls(json.loads(Path(path).read_text()))
 
     def save(self, path) -> None:
-        Path(path).write_text(json.dumps({**self.temperatures, "long_tokens": self.long_tokens}, indent=2) + "\n")
+        named = {"model_name": self.model_name} if self.model_name else {}
+        Path(path).write_text(json.dumps({**named, **self.temperatures, **self.offsets, "long_tokens": self.long_tokens}, indent=2) + "\n")
 
 
 def _pad(rows: list[list[float]], fill: float) -> np.ndarray:
